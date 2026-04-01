@@ -1,0 +1,20 @@
+{
+  "name": "my-chrome-reader",
+  "version": "1.2.0",
+  "description": "Chrome Reader View extension",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.320",
+    "copy-webpack-plugin": "^12.0.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.2",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0"
+  }
+}
