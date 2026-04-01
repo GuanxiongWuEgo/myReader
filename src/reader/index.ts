@@ -11,6 +11,15 @@ interface Article {
 type ThemeName = 'light' | 'dark' | 'green';
 type WidthKey = 'normal' | 'wide' | 'xwide';
 
+interface ReaderSettings {
+  fontFamily: string;
+  fontSize: number;
+  width: WidthKey;
+  theme: ThemeName;
+}
+
+const STORAGE_KEY = 'mrv-settings';
+
 const THEME_VARS: Record<ThemeName, Record<string, string>> = {
   light: {
     '--mrv-bg': '#fafaf8',
@@ -55,6 +64,13 @@ const WIDTHS: Record<WidthKey, number> = {
 
 const DEFAULT_FONT_SIZE = 18;
 
+const DEFAULT_SETTINGS: ReaderSettings = {
+  fontFamily: 'Georgia, serif',
+  fontSize: DEFAULT_FONT_SIZE,
+  width: 'normal',
+  theme: 'light',
+};
+
 export class ReaderView {
   private overlay: HTMLElement | null = null;
   private active = false;
@@ -79,10 +95,28 @@ export class ReaderView {
     document.head.appendChild(link);
   }
 
-  activate(): void {
+  private loadSettings(): Promise<ReaderSettings> {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(STORAGE_KEY, (result) => {
+        resolve({ ...DEFAULT_SETTINGS, ...(result[STORAGE_KEY] ?? {}) });
+      });
+    });
+  }
+
+  private saveSettings(partial: Partial<ReaderSettings>): void {
+    chrome.storage.local.get(STORAGE_KEY, (result) => {
+      const current: ReaderSettings = result[STORAGE_KEY] ?? DEFAULT_SETTINGS;
+      chrome.storage.local.set({ [STORAGE_KEY]: { ...current, ...partial } });
+    });
+  }
+
+  async activate(): Promise<void> {
     const documentClone = document.cloneNode(true) as Document;
     const article = new Readability(documentClone).parse() as Article | null;
     if (!article) return;
+
+    const settings = await this.loadSettings();
+    this.currentFontSize = settings.fontSize;
 
     this.loadGoogleFonts();
 
@@ -98,9 +132,36 @@ export class ReaderView {
     document.body.style.overflow = 'hidden';
 
     this.bindEvents();
+    this.applySettings(settings);
     document.addEventListener('keydown', this.handleKeydown);
 
     this.active = true;
+  }
+
+  private applySettings(settings: ReaderSettings): void {
+    const o = this.overlay!;
+
+    // Font family
+    const select = o.querySelector<HTMLSelectElement>('#mrv-font-family');
+    if (select) select.value = settings.fontFamily;
+    o.style.fontFamily = settings.fontFamily;
+
+    // Font size
+    const body = o.querySelector<HTMLElement>('#mrv-body');
+    if (body) body.style.fontSize = `${settings.fontSize}px`;
+
+    // Width
+    const container = o.querySelector<HTMLElement>('#mrv-container');
+    if (container) container.style.maxWidth = `${WIDTHS[settings.width]}px`;
+    o.querySelectorAll('.mrv-width-btn').forEach((b) => b.classList.remove('mrv-active'));
+    o.querySelector<HTMLButtonElement>(`.mrv-width-btn[data-width="${settings.width}"]`)?.classList.add('mrv-active');
+
+    // Theme
+    for (const [key, value] of Object.entries(THEME_VARS[settings.theme])) {
+      o.style.setProperty(key, value);
+    }
+    o.querySelectorAll('.mrv-theme-btn').forEach((b) => b.classList.remove('mrv-active'));
+    o.querySelector<HTMLButtonElement>(`.mrv-theme-btn[data-theme="${settings.theme}"]`)?.classList.add('mrv-active');
   }
 
   private buildHTML(article: Article): string {
@@ -121,7 +182,7 @@ export class ReaderView {
                 <option value="Roboto, sans-serif">Roboto</option>
               </optgroup>
               <optgroup label="衬线">
-                <option value="Georgia, serif" selected>Georgia</option>
+                <option value="Georgia, serif">Georgia</option>
                 <option value="Merriweather, serif">Merriweather</option>
                 <option value="'Libre Baskerville', serif">Libre Baskerville</option>
                 <option value="'Roboto Slab', serif">Roboto Slab</option>
@@ -134,12 +195,12 @@ export class ReaderView {
             </div>
           </div>
           <div id="mrv-center-controls">
-            <button class="mrv-width-btn mrv-active" data-width="normal">正常</button>
+            <button class="mrv-width-btn" data-width="normal">正常</button>
             <button class="mrv-width-btn" data-width="wide">宽</button>
             <button class="mrv-width-btn" data-width="xwide">很宽</button>
           </div>
           <div id="mrv-right-controls">
-            <button class="mrv-theme-btn mrv-active" data-theme="light">白色</button>
+            <button class="mrv-theme-btn" data-theme="light">白色</button>
             <button class="mrv-theme-btn" data-theme="dark">深色</button>
             <button class="mrv-theme-btn" data-theme="green">绿色</button>
             <button id="mrv-close">✕</button>
@@ -166,6 +227,7 @@ export class ReaderView {
     o.querySelector('#mrv-font-family')?.addEventListener('change', (e) => {
       const font = (e.target as HTMLSelectElement).value;
       o.style.fontFamily = font;
+      this.saveSettings({ fontFamily: font });
     });
 
     o.querySelectorAll<HTMLButtonElement>('.mrv-width-btn').forEach((btn) => {
@@ -175,6 +237,7 @@ export class ReaderView {
         if (container) container.style.maxWidth = `${WIDTHS[key]}px`;
         o.querySelectorAll('.mrv-width-btn').forEach((b) => b.classList.remove('mrv-active'));
         btn.classList.add('mrv-active');
+        this.saveSettings({ width: key });
       });
     });
 
@@ -186,6 +249,7 @@ export class ReaderView {
         }
         o.querySelectorAll('.mrv-theme-btn').forEach((b) => b.classList.remove('mrv-active'));
         btn.classList.add('mrv-active');
+        this.saveSettings({ theme });
       });
     });
   }
@@ -194,12 +258,14 @@ export class ReaderView {
     this.currentFontSize = Math.min(28, Math.max(12, this.currentFontSize + delta));
     const body = this.overlay?.querySelector<HTMLElement>('#mrv-body');
     if (body) body.style.fontSize = `${this.currentFontSize}px`;
+    this.saveSettings({ fontSize: this.currentFontSize });
   }
 
   private resetFontSize(): void {
     this.currentFontSize = DEFAULT_FONT_SIZE;
     const body = this.overlay?.querySelector<HTMLElement>('#mrv-body');
     if (body) body.style.fontSize = `${DEFAULT_FONT_SIZE}px`;
+    this.saveSettings({ fontSize: DEFAULT_FONT_SIZE });
   }
 
   destroy(): void {
