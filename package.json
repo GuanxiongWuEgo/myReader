@@ -1,6 +1,6 @@
 {
   "name": "my-chrome-reader",
-  "version": "1.2.0",
+  "version": "1.3.1",
   "description": "Chrome Reader View extension",
   "scripts": {
     "build": "webpack --mode production",

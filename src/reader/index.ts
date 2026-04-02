@@ -8,7 +8,7 @@ interface Article {
   textContent: string;
 }
 
-type ThemeName = 'light' | 'dark' | 'green';
+type ThemeName = 'light' | 'dark' | 'sepia';
 type WidthKey = 'normal' | 'wide' | 'xwide';
 
 interface ReaderSettings {
@@ -43,16 +43,16 @@ const THEME_VARS: Record<ThemeName, Record<string, string>> = {
     '--mrv-btn-hover': '#2a2a2a',
     '--mrv-btn-active-bg': '#383838',
   },
-  green: {
-    '--mrv-bg': '#f0f4ec',
-    '--mrv-text': '#2a3828',
-    '--mrv-toolbar-bg': 'rgba(240, 244, 236, 0.95)',
-    '--mrv-border': '#c8d8c0',
-    '--mrv-meta': '#6a8860',
-    '--mrv-link': '#2a6040',
-    '--mrv-code-bg': '#e4eede',
-    '--mrv-btn-hover': '#e4eede',
-    '--mrv-btn-active-bg': '#d4e8cc',
+  sepia: {
+    '--mrv-bg': '#f8f4e8',
+    '--mrv-text': '#3a3020',
+    '--mrv-toolbar-bg': 'rgba(248, 244, 232, 0.95)',
+    '--mrv-border': '#e0d4b4',
+    '--mrv-meta': '#8a7855',
+    '--mrv-link': '#5a6a3a',
+    '--mrv-code-bg': '#f0e8cc',
+    '--mrv-btn-hover': '#ede0c0',
+    '--mrv-btn-active-bg': '#e0d0a8',
   },
 };
 
@@ -98,7 +98,10 @@ export class ReaderView {
   private loadSettings(): Promise<ReaderSettings> {
     return new Promise((resolve) => {
       chrome.storage.local.get(STORAGE_KEY, (result) => {
-        resolve({ ...DEFAULT_SETTINGS, ...(result[STORAGE_KEY] ?? {}) });
+        const saved = result[STORAGE_KEY] ?? {};
+        // Migrate legacy green theme to sepia
+        if (saved.theme === 'green') saved.theme = 'sepia';
+        resolve({ ...DEFAULT_SETTINGS, ...saved });
       });
     });
   }
@@ -169,43 +172,56 @@ export class ReaderView {
     const readingTime = Math.ceil(wordCount / 200);
 
     return `
-      <div id="mrv-container">
-        <div id="mrv-toolbar">
-          <div id="mrv-left-controls">
-            <select id="mrv-font-family">
-              <optgroup label="无衬线">
-                <option value="Inter, sans-serif">Inter</option>
-                <option value="'Source Sans 3', sans-serif">Source Sans 3</option>
-                <option value="Lato, sans-serif">Lato</option>
-                <option value="Nunito, sans-serif">Nunito</option>
-                <option value="'Open Sans', sans-serif">Open Sans</option>
-                <option value="Roboto, sans-serif">Roboto</option>
-              </optgroup>
-              <optgroup label="衬线">
-                <option value="Georgia, serif">Georgia</option>
-                <option value="Merriweather, serif">Merriweather</option>
-                <option value="'Libre Baskerville', serif">Libre Baskerville</option>
-                <option value="'Roboto Slab', serif">Roboto Slab</option>
-              </optgroup>
-            </select>
-            <div class="mrv-group">
-              <button id="mrv-font-dec">A−</button>
-              <button id="mrv-font-reset" title="重置字号">↺</button>
-              <button id="mrv-font-inc">A+</button>
-            </div>
-          </div>
-          <div id="mrv-center-controls">
-            <button class="mrv-width-btn" data-width="normal">正常</button>
-            <button class="mrv-width-btn" data-width="wide">宽</button>
-            <button class="mrv-width-btn" data-width="xwide">很宽</button>
-          </div>
-          <div id="mrv-right-controls">
-            <button class="mrv-theme-btn" data-theme="light">白色</button>
-            <button class="mrv-theme-btn" data-theme="dark">深色</button>
-            <button class="mrv-theme-btn" data-theme="green">绿色</button>
-            <button id="mrv-close">✕</button>
+      <div id="mrv-topbar">
+        <button id="mrv-settings-btn" title="设置">⚙</button>
+        <button id="mrv-close" title="关闭">✕</button>
+      </div>
+      <div id="mrv-settings-panel" class="mrv-hidden">
+        <div class="mrv-settings-row">
+          <span class="mrv-settings-label">字体</span>
+          <select id="mrv-font-family">
+            <optgroup label="无衬线">
+              <option value="Inter, sans-serif">Inter</option>
+              <option value="'Source Sans 3', sans-serif">Source Sans 3</option>
+              <option value="Lato, sans-serif">Lato</option>
+              <option value="Nunito, sans-serif">Nunito</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="Roboto, sans-serif">Roboto</option>
+            </optgroup>
+            <optgroup label="衬线">
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Merriweather, serif">Merriweather</option>
+              <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+              <option value="'Roboto Slab', serif">Roboto Slab</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="mrv-settings-row">
+          <span class="mrv-settings-label">字号</span>
+          <div class="mrv-group">
+            <button id="mrv-font-dec">A−</button>
+            <button id="mrv-font-reset" title="重置字号">↺</button>
+            <button id="mrv-font-inc">A+</button>
           </div>
         </div>
+        <div class="mrv-settings-row">
+          <span class="mrv-settings-label">宽度</span>
+          <div class="mrv-group">
+            <button class="mrv-width-btn" data-width="normal">默认</button>
+            <button class="mrv-width-btn" data-width="wide">较宽</button>
+            <button class="mrv-width-btn" data-width="xwide">全宽</button>
+          </div>
+        </div>
+        <div class="mrv-settings-row">
+          <span class="mrv-settings-label">主题</span>
+          <div class="mrv-group">
+            <button class="mrv-theme-btn" data-theme="light">白色</button>
+            <button class="mrv-theme-btn" data-theme="dark">深色</button>
+            <button class="mrv-theme-btn" data-theme="sepia">护眼</button>
+          </div>
+        </div>
+      </div>
+      <div id="mrv-container">
         <div id="mrv-content">
           <h1 id="mrv-title">${article.title}</h1>
           ${article.byline ? `<div id="mrv-byline">${article.byline}</div>` : ''}
@@ -223,6 +239,26 @@ export class ReaderView {
     o.querySelector('#mrv-font-dec')?.addEventListener('click', () => this.adjustFontSize(-2));
     o.querySelector('#mrv-font-inc')?.addEventListener('click', () => this.adjustFontSize(2));
     o.querySelector('#mrv-font-reset')?.addEventListener('click', () => this.resetFontSize());
+
+    // Gear toggle
+    const settingsBtn = o.querySelector('#mrv-settings-btn');
+    const settingsPanel = o.querySelector('#mrv-settings-panel');
+    settingsBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsPanel?.classList.toggle('mrv-hidden');
+    });
+
+    // Close panel when clicking outside
+    o.addEventListener('click', (e) => {
+      if (
+        settingsPanel &&
+        !settingsPanel.classList.contains('mrv-hidden') &&
+        !settingsPanel.contains(e.target as Node) &&
+        e.target !== settingsBtn
+      ) {
+        settingsPanel.classList.add('mrv-hidden');
+      }
+    });
 
     o.querySelector('#mrv-font-family')?.addEventListener('change', (e) => {
       const font = (e.target as HTMLSelectElement).value;

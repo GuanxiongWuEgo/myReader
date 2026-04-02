@@ -23,33 +23,74 @@ export function getStyles(): string {
     #mrv-container {
       max-width: 680px;
       margin: 0 auto;
-      padding: 80px 24px 60px;
+      padding: 40px 24px 60px;
       transition: max-width 0.2s ease;
     }
 
-    /* ── Toolbar ── */
-    #mrv-toolbar {
+    /* ── Floating top-right controls ── */
+    #mrv-topbar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 16px;
+      right: 16px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: var(--mrv-toolbar-bg);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--mrv-border);
-      z-index: 1;
+      gap: 6px;
+      z-index: 2;
     }
 
-    #mrv-left-controls,
-    #mrv-center-controls,
-    #mrv-right-controls {
+    #mrv-topbar button {
+      background: var(--mrv-toolbar-bg);
+      border: 1px solid var(--mrv-border);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--mrv-text);
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      padding: 0;
+      line-height: 1;
+    }
+
+    #mrv-topbar button:hover {
+      background: var(--mrv-btn-hover);
+    }
+
+    /* ── Settings panel ── */
+    #mrv-settings-panel {
+      position: fixed;
+      top: 56px;
+      right: 16px;
+      background: var(--mrv-toolbar-bg);
+      border: 1px solid var(--mrv-border);
+      border-radius: 8px;
+      padding: 14px 14px 12px;
+      z-index: 2;
+      backdrop-filter: blur(8px);
+      min-width: 230px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    #mrv-settings-panel.mrv-hidden {
+      display: none;
+    }
+
+    .mrv-settings-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mrv-settings-label {
+      font-size: 12px;
+      color: var(--mrv-meta);
+      width: 32px;
+      flex-shrink: 0;
     }
 
     .mrv-group {
@@ -57,36 +98,33 @@ export function getStyles(): string {
       gap: 2px;
     }
 
-    /* Base style for all toolbar controls */
-    #mrv-toolbar button,
+    /* ── Panel controls ── */
+    #mrv-settings-panel button,
     #mrv-font-family {
       background: none;
       border: 1px solid var(--mrv-border);
       border-radius: 4px;
       padding: 4px 8px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--mrv-text);
       line-height: 1.4;
       white-space: nowrap;
     }
 
     #mrv-font-family {
-      padding: 3px 4px;
+      flex: 1;
+      padding: 4px 6px;
     }
 
-    #mrv-toolbar button:hover,
+    #mrv-settings-panel button:hover,
     #mrv-font-family:hover {
       background: var(--mrv-btn-hover);
     }
 
-    #mrv-toolbar button.mrv-active {
+    #mrv-settings-panel button.mrv-active {
       background: var(--mrv-btn-active-bg);
       border-color: #aaa;
-    }
-
-    #mrv-close {
-      margin-left: 4px;
     }
 
     /* ── Article ── */
